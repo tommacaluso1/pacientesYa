@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(command -v psql)",
+      "Bash(psql --version)",
+      "Bash(npx supabase *)",
+      "Bash(./node_modules/.bin/supabase db *)",
+      "Bash(curl -sI 'https://hwvnrzsumixmpgymmaso.supabase.co/rest/v1/' -H 'apikey: sb_publishable_WB-2xTIgcI0cLGn144RYyA_p3mujnfx')"
+    ]
+  }
+}
