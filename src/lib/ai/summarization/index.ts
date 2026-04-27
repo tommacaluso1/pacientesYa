@@ -30,7 +30,7 @@ export async function generateClinicalDocument(args: {
   patientContext: string;       // datos paciente + antecedentes
   encounterContext: string;     // sector/cama, motivo, dx presuntivo, vitals, labs, transcripts, etc
 }): Promise<string> {
-  if (env.AI_MODE === "mock") return mockDoc(args.kind);
+  if (env.AI_MODE === "mock") return mockDoc(args.kind, args.patientContext);
   const res = await openai().chat.completions.create({
     model: env.OPENAI_TEXT_MODEL,
     temperature: 0.2,
@@ -43,15 +43,17 @@ export async function generateClinicalDocument(args: {
   return res.choices[0]?.message?.content?.trim() ?? "";
 }
 
-function mockDoc(kind: SummaryKind): string {
+function mockDoc(kind: SummaryKind, patientContext: string): string {
+  const header = `[MODO DEMO — activá AI_MODE=openai para texto real]\n\nPaciente: ${patientContext.split("\n")[0]}`;
   if (kind === "evolucion") {
     return [
-      "Evolución (mock)",
-      "S: Paciente refiere persistencia del dolor torácico, intensidad 6/10. Niega disnea actual.",
-      "O: TA 140/90, FC 92, Sat 97%, Tº 36.7. Buen estado general. R1-R2 normofonéticos sin soplos.",
-      "A: Dolor torácico en estudio, evolución estable. Pendiente segunda toma de troponina.",
-      "P: Continúa con AAS, control de signos vitales c/2 hs, rever a las 4 hs."
+      header,
+      "",
+      "S: Motivo de consulta según registro del episodio.",
+      "O: Signos vitales y examen físico según datos cargados.",
+      "A: Impresión clínica pendiente de evaluación médica.",
+      "P: Plan a definir por el médico tratante."
     ].join("\n");
   }
-  return "Documento mock — configurá OPENAI_API_KEY y AI_MODE=openai para generar contenido real.";
+  return `${header}\n\nDocumento a completar — configurá OPENAI_API_KEY y AI_MODE=openai para generación automática.`;
 }

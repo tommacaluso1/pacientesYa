@@ -7,6 +7,7 @@ import { extract } from "./extraction";
 import { generateClinicalDocument } from "./summarization";
 import { embed } from "./embeddings";
 import { generateSuggestions } from "./suggestions";
+import { env } from "@/lib/env";
 import type { ExtractionResult } from "@/lib/validation/schemas";
 
 const STORAGE_BUCKET = "clinical";
@@ -34,14 +35,17 @@ export async function processConsultation(consultationId: string) {
 
   await supabase.from("consultations").update({ status: "transcribing" }).eq("id", consultationId);
 
-  // 2. download audio
-  const { data: blob, error: dlErr } = await supabase.storage.from(STORAGE_BUCKET).download(c.audio_path);
-  if (dlErr || !blob) {
-    await supabase.from("consultations").update({ status: "failed", error: dlErr?.message ?? "download failed" }).eq("id", consultationId);
-    throw dlErr ?? new Error("audio download failed");
+  // 2. download audio (skipped in mock mode — no real transcription needed)
+  let bytes = new Uint8Array(0);
+  if (env.AI_MODE !== "mock") {
+    const { data: blob, error: dlErr } = await supabase.storage.from(STORAGE_BUCKET).download(c.audio_path);
+    if (dlErr || !blob) {
+      await supabase.from("consultations").update({ status: "failed", error: dlErr?.message ?? "download failed" }).eq("id", consultationId);
+      throw dlErr ?? new Error("audio download failed");
+    }
+    const arrayBuf = await blob.arrayBuffer();
+    bytes = new Uint8Array(arrayBuf);
   }
-  const arrayBuf = await blob.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuf);
 
   // 3. transcribe
   let transcribed;
@@ -49,7 +53,6 @@ export async function processConsultation(consultationId: string) {
     transcribed = await transcribe({
       bytes,
       filename: c.audio_path.split("/").pop() ?? "audio.webm",
-      mimeType: blob.type,
       language: "es"
     });
   } catch (e) {
@@ -150,15 +153,13 @@ export async function processConsultation(consultationId: string) {
     );
   }
 
-  // 7. summary (evolución) + embedding
-  let summaryText = extraction.resumen?.trim();
-  if (!summaryText) {
-    summaryText = await generateClinicalDocument({
-      kind: "evolucion",
-      patientContext: patientCtx,
-      encounterContext: cleaned.slice(0, 4000)
-    });
-  }
+  // 7. summary (evolución) + embedding — always generate from patient context,
+  // never use extraction.resumen which is a mock stub unrelated to the real patient
+  const summaryText = await generateClinicalDocument({
+    kind: "evolucion",
+    patientContext: patientCtx,
+    encounterContext: cleaned.slice(0, 4000)
+  });
 
   const { data: summary } = await supabase.from("patient_summaries").insert({
     patient_id: patient!.id,

@@ -21,6 +21,6 @@ export async function extractMock(_args: { transcript: string; context?: string 
       { title: "RX de tórax", priority: "media" },
       { title: "Administrar AAS 300mg VO", priority: "alta" }
     ],
-    resumen: "Mujer con dolor torácico opresivo irradiado a MSI, HTA y DBT2. Hemodinamia con TA 150/95, FC 102. Plan: ECG + enzimas + RX, AAS 300 mg."
+    resumen: ""
   };
 }
