@@ -15,7 +15,8 @@ export default async function AlertasPage() {
   const encs = encIds.length
     ? (await supabase.from("encounters").select("id,patient_id,patients(nombre,apellido)").in("id", encIds)).data ?? []
     : [];
-  const byEnc = new Map(encs.map((e: { id: string; patient_id: string; patients?: { nombre: string; apellido: string } | null }) => [e.id, e]));
+  type EncRow = { id: string; patient_id: string; patients?: { nombre: string; apellido: string } | null };
+  const byEnc = new Map((encs as unknown as EncRow[]).map((e) => [e.id, e]));
 
   return (
     <div className="space-y-3">

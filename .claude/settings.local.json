@@ -6,7 +6,10 @@
       "Bash(psql --version)",
       "Bash(npx supabase *)",
       "Bash(./node_modules/.bin/supabase db *)",
-      "Bash(curl -sI 'https://hwvnrzsumixmpgymmaso.supabase.co/rest/v1/' -H 'apikey: sb_publishable_WB-2xTIgcI0cLGn144RYyA_p3mujnfx')"
+      "Bash(curl -sI 'https://hwvnrzsumixmpgymmaso.supabase.co/rest/v1/' -H 'apikey: sb_publishable_WB-2xTIgcI0cLGn144RYyA_p3mujnfx')",
+      "Bash(node -e ' *)",
+      "Bash(npm show *)",
+      "Bash(node -e \"const v = JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(v.slice\\(-5\\).join\\(', '\\)\\)\")"
     ]
   }
 }

@@ -11,7 +11,7 @@ export default async function HistoriasPage() {
   const { data } = await supabase
     .from("patient_summaries").select("*, patients(id,nombre,apellido)")
     .order("created_at", { ascending: false }).limit(100);
-  const list = (data ?? []) as Array<PatientSummary & { patients: { id: string; nombre: string; apellido: string } }>;
+  const list = (data ?? []) as unknown as Array<PatientSummary & { patients: { id: string; nombre: string; apellido: string } }>;
 
   return (
     <div className="space-y-3">

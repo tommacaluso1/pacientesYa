@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import type { TranscribeArgs, TranscribeResult } from ".";
 
 export async function transcribeOpenAI(args: TranscribeArgs): Promise<TranscribeResult> {
-  const file = new File([args.bytes], args.filename, { type: args.mimeType ?? "audio/webm" });
+  const file = new File([args.bytes as unknown as BlobPart], args.filename, { type: args.mimeType ?? "audio/webm" });
   const res = await openai().audio.transcriptions.create({
     file,
     model: env.OPENAI_TRANSCRIPTION_MODEL,

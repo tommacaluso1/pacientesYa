@@ -14,7 +14,7 @@ export async function listActivePatients(): Promise<PatientWithEncounter[]> {
     .order("ingreso_at", { ascending: false });
   if (e1) throw e1;
 
-  const encList = (encounters ?? []) as Array<Encounter & { patients: Patient }>;
+  const encList = (encounters ?? []) as unknown as Array<Encounter & { patients: Patient }>;
   if (encList.length === 0) return [];
 
   const encIds = encList.map((e) => e.id);

@@ -112,30 +112,34 @@ export interface Embedding {
   embedding: number[]; metadata: Record<string, unknown>; created_at: string;
 }
 
-// Minimal Database type for supabase-js generics — sufficient at compile time;
-// regenerate properly with `npm run db:types` for full type-safe queries.
+// Supabase-js v2 requires Row/Insert/Update to extend Record<string,unknown>.
+// TypeScript interfaces without index signatures don't satisfy this, so we
+// intersect with Record<string,unknown> to satisfy the GenericTable constraint.
+type W<T> = T & Record<string, unknown>;
+type TD<R, I = Partial<R>, U = Partial<R>> = { Row: W<R>; Insert: W<I>; Update: W<U>; Relationships: [] };
+
 export type Database = {
   public: {
     Tables: {
-      users:                { Row: User;               Insert: Partial<User>;               Update: Partial<User> };
-      patients:             { Row: Patient;            Insert: Partial<Patient>;            Update: Partial<Patient> };
-      encounters:           { Row: Encounter;          Insert: Partial<Encounter>;          Update: Partial<Encounter> };
-      consultations:        { Row: Consultation;       Insert: Partial<Consultation>;       Update: Partial<Consultation> };
-      transcripts:          { Row: Transcript;         Insert: Partial<Transcript>;         Update: Partial<Transcript> };
-      clinical_entities:    { Row: ClinicalEntity;     Insert: Partial<ClinicalEntity>;     Update: Partial<ClinicalEntity> };
-      vitals:               { Row: Vitals;             Insert: Partial<Vitals>;             Update: Partial<Vitals> };
-      labs:                 { Row: Lab;                Insert: Partial<Lab>;                Update: Partial<Lab> };
-      documents:            { Row: DocumentRow;        Insert: Partial<DocumentRow>;        Update: Partial<DocumentRow> };
-      tasks:                { Row: Task;               Insert: Partial<Task>;               Update: Partial<Task> };
-      alerts:               { Row: Alert;              Insert: Partial<Alert>;              Update: Partial<Alert> };
-      patient_summaries:    { Row: PatientSummary;     Insert: Partial<PatientSummary>;     Update: Partial<PatientSummary> };
-      clinical_suggestions: { Row: ClinicalSuggestion; Insert: Partial<ClinicalSuggestion>; Update: Partial<ClinicalSuggestion> };
-      embeddings:           { Row: Embedding;          Insert: Partial<Embedding>;          Update: Partial<Embedding> };
+      users:                TD<User>;
+      patients:             TD<Patient>;
+      encounters:           TD<Encounter>;
+      consultations:        TD<Consultation>;
+      transcripts:          TD<Transcript>;
+      clinical_entities:    TD<ClinicalEntity>;
+      vitals:               TD<Vitals>;
+      labs:                 TD<Lab>;
+      documents:            TD<DocumentRow>;
+      tasks:                TD<Task>;
+      alerts:               TD<Alert>;
+      patient_summaries:    TD<PatientSummary>;
+      clinical_suggestions: TD<ClinicalSuggestion>;
+      embeddings:           TD<Embedding>;
     };
-    Views: {};
+    Views: Record<string, never>;
     Functions: {
       match_embeddings: {
-        Args: { query_embedding: number[]; match_count?: number; match_threshold?: number; filter_patient?: string | null };
+        Args: W<{ query_embedding: number[]; match_count?: number; match_threshold?: number; filter_patient?: string | null }>;
         Returns: Array<{ id: string; source_kind: string; source_id: string; patient_id: string | null; content: string; metadata: Record<string, unknown>; similarity: number }>;
       };
     };
@@ -145,5 +149,6 @@ export type Database = {
       alert_kind: AlertKind; alert_severity: AlertSeverity;
       document_kind: DocumentKind; entity_kind: EntityKind; suggestion_kind: SuggestionKind;
     };
+    CompositeTypes: Record<string, never>;
   };
 };
