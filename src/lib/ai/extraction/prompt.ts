@@ -28,11 +28,12 @@ Devolvé JSON con esta forma:
   ],
   "vitals": {
     "ta_sistolica": null, "ta_diastolica": null, "fc": null, "fr": null,
-    "temperatura": null, "saturacion": null, "glucemia": null, "dolor_eva": null
+    "temperatura": null, "saturacion": null, "glucemia": null,
+    "glasgow": null, "dolor_eva": null
   },
   "labs": [{ "analito": "string", "valor": 0, "unidad": "string|null",
              "ref_min": null, "ref_max": null }],
-  "tasks_sugeridas": [{ "title": "string", "priority": "baja|media|alta|critica" }],
+  "tasks_sugeridas": [{ "title": "string" }],
   "resumen": "string (máx 3 oraciones, estilo clínico argentino)"
 }
 `.trim();

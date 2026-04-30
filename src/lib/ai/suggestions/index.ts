@@ -22,7 +22,7 @@ export async function generateSuggestions(args: {
   encounterContext: string;       // dx presuntivo, motivo, vitals, labs, entities, antecedentes
   similarCases: string[];         // top-k summaries from pgvector
 }): Promise<SuggestionInput[]> {
-  if (env.AI_MODE === "mock") return mockSuggestions();
+  if (env.AI_MODE === "mock") return mockSuggestions(args);
 
   const user = `
 DATOS DEL EPISODIO ACTUAL:
@@ -56,35 +56,20 @@ Generá entre 0 y 6 sugerencias. JSON:
     .flatMap((p) => (p.success ? [p.data] : []));
 }
 
-function mockSuggestions(): SuggestionInput[] {
+// Demo mock: never fabricate clinical content. Output is clearly labeled and
+// scoped to the actual patient context so it can't be confused with real data
+// from another patient.
+function mockSuggestions(args: { encounterContext: string; similarCases: string[] }): SuggestionInput[] {
+  const firstLine = args.encounterContext.split("\n").map((l) => l.trim()).find(Boolean) ?? "—";
   return [
     {
       kind: "diagnostico_diferencial",
-      title: "Síndrome coronario agudo (SCA)",
-      reasoning: "Dolor torácico opresivo, irradiado a MSI, en mujer de 63 años con HTA y DBT2. Cuadro compatible con SCA hasta descartar.",
-      confidence: 0.78,
-      source: [{ type: "encounter", snippet: "dolor torácico opresivo de 2 hs + factores de riesgo" }]
-    },
-    {
-      kind: "estudio_complementario",
-      title: "ECG seriado + curva enzimática (troponina 0/3 hs)",
-      reasoning: "Estándar para descartar SCA en paciente con dolor torácico y factores de riesgo.",
-      confidence: 0.85,
-      source: []
-    },
-    {
-      kind: "tratamiento",
-      title: "Considerar antiagregación según protocolo institucional",
-      reasoning: "AAS ya indicada. Revisar segunda antiagregación según hallazgos del ECG/enzimas.",
-      confidence: 0.55,
-      source: []
-    },
-    {
-      kind: "interconsulta",
-      title: "Cardiología",
-      reasoning: "Por sospecha de SCA y necesidad de evaluación especializada.",
-      confidence: 0.7,
-      source: []
+      title: "[MODO DEMO] Sugerencias deshabilitadas",
+      reasoning:
+        `AI_MODE=mock activo. La app no está generando sugerencias reales para este paciente (${firstLine}). ` +
+        `Configurá OPENAI_API_KEY y AI_MODE=openai para habilitar análisis automático.`,
+      confidence: 0,
+      source: [{ type: "encounter", snippet: "modo demo" }]
     }
   ];
 }

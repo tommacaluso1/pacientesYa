@@ -6,23 +6,45 @@ export type SummaryKind = "historia_clinica" | "evolucion" | "egreso";
 const SYSTEM = `
 Sos un asistente clínico que redacta documentos en estilo argentino,
 tono profesional, conciso y sin diagnósticos no fundamentados.
-- Usá secciones tradicionales según el tipo solicitado.
-- No inventes datos. Si falta información, escribí "no consignado".
-- Nunca tomes decisiones autónomas; el médico revisa y firma.
+- Usá EXACTAMENTE las secciones del template solicitado, en ese orden.
+- No inventes datos. Si una sección no tiene información, escribí "no consignado".
+- No reuses datos de otros pacientes. Sólo trabajás con los datos del paciente actual provistos abajo.
+- Nunca tomes decisiones autónomas; el médico revisa, edita y firma.
+- Devolvé sólo el documento, sin preámbulos ni cierres tipo "espero que sirva".
 `.trim();
 
 const TEMPLATES: Record<SummaryKind, string> = {
-  historia_clinica:
-    "Generá una HISTORIA CLÍNICA con secciones: Filiatorios, Motivo de consulta, " +
-    "Antecedentes personales / familiares / alergias / medicación habitual, " +
-    "Enfermedad actual, Examen físico, Estudios complementarios, " +
-    "Diagnóstico presuntivo, Diagnósticos diferenciales, Plan / Indicaciones.",
-  evolucion:
-    "Generá una EVOLUCIÓN diaria en formato SOAP en español: Subjetivo, Objetivo (signos vitales y examen), " +
-    "Análisis (impresión clínica), Plan (indicaciones). Máximo ~250 palabras.",
-  egreso:
-    "Generá una EPICRISIS / RESUMEN DE EGRESO con: Motivo de internación, evolución, " +
-    "estudios relevantes, diagnóstico final, tratamiento al alta, controles."
+  // Short daily evolution — what the resident hands off on rounds.
+  evolucion: [
+    "Generá una EVOLUCIÓN DIARIA con estas secciones, en este orden,",
+    "cada una con su título en mayúscula seguido de dos puntos:",
+    "1. DÍA DE INTERNACIÓN  — usá el día calculado del contexto del episodio.",
+    "2. ESTADO GENERAL       — descripción global del paciente.",
+    "3. SIGNOS VITALES       — TA, FC, FR, Tº, SatO2, glucemia, Glasgow si están.",
+    "4. CAMBIOS RELEVANTES   — qué cambió desde la última evolución.",
+    "5. ESTUDIOS             — laboratorios y estudios pertinentes del día.",
+    "6. CONDUCTA             — plan / indicaciones para las próximas horas.",
+    "Tono telegráfico, máximo ~250 palabras."
+  ].join("\n"),
+
+  // Full admission write-up.
+  historia_clinica: [
+    "Generá una HISTORIA CLÍNICA con estas secciones, en este orden,",
+    "cada una con su título en mayúscula seguido de dos puntos:",
+    "1. MOTIVO DE CONSULTA",
+    "2. ENFERMEDAD ACTUAL       — relato cronológico del episodio.",
+    "3. ANTECEDENTES            — personales, alergias, medicación habitual.",
+    "4. EXAMEN FÍSICO           — incluí signos vitales y hallazgos relevantes.",
+    "5. ESTUDIOS COMPLEMENTARIOS — labs e imágenes con resultados.",
+    "6. DIAGNÓSTICO PRESUNTIVO  — y diagnósticos diferenciales si corresponde.",
+    "7. PLAN                    — conducta, indicaciones, interconsultas."
+  ].join("\n"),
+
+  egreso: [
+    "Generá una EPICRISIS / RESUMEN DE EGRESO con secciones:",
+    "Motivo de internación, Evolución, Estudios relevantes,",
+    "Diagnóstico final, Tratamiento al alta, Controles."
+  ].join("\n")
 };
 
 export async function generateClinicalDocument(args: {
@@ -43,17 +65,32 @@ export async function generateClinicalDocument(args: {
   return res.choices[0]?.message?.content?.trim() ?? "";
 }
 
+// Demo mock — never fabricates clinical content.
 function mockDoc(kind: SummaryKind, patientContext: string): string {
-  const header = `[MODO DEMO — activá AI_MODE=openai para texto real]\n\nPaciente: ${patientContext.split("\n")[0]}`;
+  const firstLine = patientContext.split("\n").find((l) => l.trim().length > 0) ?? "—";
+  const header = `[MODO DEMO — activá AI_MODE=openai para texto real]\n\nPaciente: ${firstLine}\n`;
   if (kind === "evolucion") {
     return [
       header,
-      "",
-      "S: Motivo de consulta según registro del episodio.",
-      "O: Signos vitales y examen físico según datos cargados.",
-      "A: Impresión clínica pendiente de evaluación médica.",
-      "P: Plan a definir por el médico tratante."
+      "DÍA DE INTERNACIÓN: pendiente.",
+      "ESTADO GENERAL: pendiente.",
+      "SIGNOS VITALES: pendiente.",
+      "CAMBIOS RELEVANTES: pendiente.",
+      "ESTUDIOS: pendiente.",
+      "CONDUCTA: pendiente."
     ].join("\n");
   }
-  return `${header}\n\nDocumento a completar — configurá OPENAI_API_KEY y AI_MODE=openai para generación automática.`;
+  if (kind === "historia_clinica") {
+    return [
+      header,
+      "MOTIVO DE CONSULTA: pendiente.",
+      "ENFERMEDAD ACTUAL: pendiente.",
+      "ANTECEDENTES: pendiente.",
+      "EXAMEN FÍSICO: pendiente.",
+      "ESTUDIOS COMPLEMENTARIOS: pendiente.",
+      "DIAGNÓSTICO PRESUNTIVO: pendiente.",
+      "PLAN: pendiente."
+    ].join("\n");
+  }
+  return `${header}\nDocumento de egreso pendiente.`;
 }

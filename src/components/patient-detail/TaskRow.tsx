@@ -2,13 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { toggleTaskAction } from "@/app/actions/tasks";
 import { fmtDateTime } from "@/lib/utils";
 import type { Task } from "@/types/database";
 import { Check } from "lucide-react";
-
-const prioVariant = { baja: "secondary", media: "outline", alta: "warn", critica: "critico" } as const;
 
 export function TaskRow({ task }: { task: Task }) {
   const router = useRouter();
@@ -31,7 +28,6 @@ export function TaskRow({ task }: { task: Task }) {
         {task.detail && <div className="text-xs text-muted-foreground truncate">{task.detail}</div>}
         {task.due_at && <div className="text-xs text-muted-foreground">vence {fmtDateTime(task.due_at)}</div>}
       </div>
-      <Badge variant={prioVariant[task.priority]}>{task.priority}</Badge>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { extract } from "./extraction";
 import { generateClinicalDocument } from "./summarization";
 import { embed } from "./embeddings";
 import { generateSuggestions } from "./suggestions";
+import { buildPatientContext, formatPatientContext } from "@/lib/domain/context";
 import { env } from "@/lib/env";
 import type { ExtractionResult } from "@/lib/validation/schemas";
 
@@ -81,15 +82,9 @@ export async function processConsultation(consultationId: string) {
     finished_at: new Date().toISOString()
   }).eq("id", consultationId);
 
-  // 5. extract structured data
-  const patientCtx = [
-    `${patient!.nombre} ${patient!.apellido}, ${patient!.edad ?? "?"} años, sexo ${patient!.sexo}`,
-    patient!.antecedentes?.length ? `Antecedentes: ${patient!.antecedentes.join(", ")}` : "",
-    patient!.alergias?.length ? `Alergias: ${patient!.alergias.join(", ")}` : "",
-    patient!.medicacion_habitual?.length ? `Medicación habitual: ${patient!.medicacion_habitual.join(", ")}` : "",
-    enc!.motivo_consulta ? `Motivo de consulta: ${enc!.motivo_consulta}` : "",
-    enc!.diagnostico_presuntivo ? `Dx presuntivo: ${enc!.diagnostico_presuntivo}` : ""
-  ].filter(Boolean).join("\n");
+  // 5. extract structured data — shared context builder, scoped to THIS patient
+  const preCtx = await buildPatientContext(patient!.id, c.encounter_id);
+  const { patientText: patientCtx } = formatPatientContext(preCtx);
 
   let extraction: ExtractionResult;
   try {
@@ -128,6 +123,7 @@ export async function processConsultation(consultationId: string) {
       temperatura: v.temperatura ?? null,
       saturacion: v.saturacion ?? null,
       glucemia: v.glucemia ?? null,
+      glasgow: v.glasgow ?? null,
       dolor_eva: v.dolor_eva ?? null,
       notas: "auto-extraído"
     });
@@ -147,18 +143,24 @@ export async function processConsultation(consultationId: string) {
   if (extraction.tasks_sugeridas.length) {
     await supabase.from("tasks").insert(
       extraction.tasks_sugeridas.map((t) => ({
-        encounter_id: c.encounter_id, owner_id: user.id,
-        title: t.title, priority: t.priority
+        encounter_id: c.encounter_id,
+        patient_id: patient!.id,
+        owner_id: user.id,
+        title: t.title
       }))
     );
   }
 
-  // 7. summary (evolución) + embedding — always generate from patient context,
-  // never use extraction.resumen which is a mock stub unrelated to the real patient
+  // 7. summary (evolución) + embedding — rebuild context AFTER inserts so the
+  // newly-extracted vitals/labs/entities are reflected. extraction.resumen is
+  // explicitly NOT used — it's mock content in demo mode and unreliable in
+  // real mode. The summary always derives from this patient's structured data.
+  const postCtx = await buildPatientContext(patient!.id, c.encounter_id);
+  const { patientText: postPatient, encounterText: postEncounter } = formatPatientContext(postCtx);
   const summaryText = await generateClinicalDocument({
     kind: "evolucion",
-    patientContext: patientCtx,
-    encounterContext: cleaned.slice(0, 4000)
+    patientContext: postPatient,
+    encounterContext: postEncounter
   });
 
   const { data: summary } = await supabase.from("patient_summaries").insert({
@@ -182,14 +184,25 @@ export async function processConsultation(consultationId: string) {
   await supabase.from("consultations").update({ status: "extracted" }).eq("id", consultationId);
 
   // 8. similarity-driven suggestions (best-effort)
+  // RAG is scoped to THIS patient only. Cross-patient retrieval is a contamination
+  // vector — the LLM would otherwise paraphrase other patients' summaries into
+  // suggestions for the current encounter. The defensive filter below is a
+  // belt-and-suspenders check in case the RPC ever returns a mismatched row.
   try {
     const queryVec = await embed(summaryText);
     const { data: matches } = await supabase.rpc("match_embeddings", {
       query_embedding: queryVec, match_count: 5, match_threshold: 0.78,
-      filter_patient: null
+      filter_patient: patient!.id
     });
     const similar = (matches ?? [])
       .filter((m) => m.source_id !== summary!.id)
+      .filter((m) => {
+        if (m.patient_id && m.patient_id !== patient!.id) {
+          console.warn(`[pipeline] dropped cross-patient embedding: got patient_id=${m.patient_id}, expected ${patient!.id}`);
+          return false;
+        }
+        return true;
+      })
       .map((m) => m.content)
       .slice(0, 5);
 

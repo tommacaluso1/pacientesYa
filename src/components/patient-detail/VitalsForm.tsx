@@ -27,10 +27,11 @@ export function VitalsForm({ encounterId }: { encounterId: string }) {
       className="grid grid-cols-2 gap-2 sm:grid-cols-3"
     >
       {[
-        ["ta_sistolica", "TA sist."], ["ta_diastolica", "TA diast."],
-        ["fc", "FC"], ["fr", "FR"],
-        ["temperatura", "Tº"], ["saturacion", "SatO2"],
-        ["glucemia", "HGT"], ["dolor_eva", "Dolor /10"]
+        ["ta_sistolica", "TA sist."],         ["ta_diastolica", "TA diast."],
+        ["fc", "FC"],                         ["fr", "FR"],
+        ["temperatura", "Tº"],                ["saturacion", "SatO2"],
+        ["glucemia", "Glucemia (mg/dL)"],     ["glasgow", "Glasgow (3-15)"],
+        ["dolor_eva", "Dolor /10"]
       ].map(([k, l]) => (
         <div key={k} className="space-y-1">
           <Label htmlFor={k}>{l}</Label>

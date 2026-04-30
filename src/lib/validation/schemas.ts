@@ -31,16 +31,17 @@ export type PatientFastCreate = z.infer<typeof patientFastCreateSchema>;
 
 export const taskCreateSchema = z.object({
   encounter_id: z.string().uuid(),
+  patient_id: z.string().uuid(),
   title: z.string().min(1).max(120),
   detail: z.string().max(500).optional().or(z.literal("")),
-  priority: taskPrioritySchema.default("media"),
+  // priority is no longer collected from the UI. The DB column still exists
+  // and defaults to 'media' to keep older rows valid; we don't write it.
   due_at: z.string().datetime().optional().nullable()
 });
 export type TaskCreate = z.infer<typeof taskCreateSchema>;
 
 export const taskUpdateSchema = z.object({
   status: taskStatusSchema.optional(),
-  priority: taskPrioritySchema.optional(),
   title: z.string().min(1).max(120).optional(),
   detail: z.string().max(500).nullish(),
   due_at: z.string().datetime().nullish()
@@ -56,6 +57,7 @@ export const vitalsSchema = z.object({
   temperatura: z.coerce.number().min(30).max(43).optional(),
   saturacion: z.coerce.number().int().min(40).max(100).optional(),
   glucemia: z.coerce.number().int().min(20).max(800).optional(),
+  glasgow: z.coerce.number().int().min(3).max(15).optional(),
   dolor_eva: z.coerce.number().int().min(0).max(10).optional(),
   notas: z.string().max(300).optional().or(z.literal(""))
 });
@@ -98,6 +100,7 @@ export const extractionResultSchema = z.object({
     temperatura: z.number().nullable().optional(),
     saturacion: z.number().int().nullable().optional(),
     glucemia: z.number().int().nullable().optional(),
+    glasgow: z.number().int().min(3).max(15).nullable().optional(),
     dolor_eva: z.number().int().nullable().optional()
   }).partial().optional(),
   labs: z.array(z.object({
@@ -107,7 +110,7 @@ export const extractionResultSchema = z.object({
     ref_max: z.number().nullable().optional()
   })).default([]),
   tasks_sugeridas: z.array(z.object({
-    title: z.string(), priority: taskPrioritySchema.default("media")
+    title: z.string()
   })).default([]),
   resumen: z.string().default("")
 });

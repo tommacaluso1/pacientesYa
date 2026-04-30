@@ -7,7 +7,7 @@ import { vitalsSchema } from "@/lib/validation/schemas";
 export async function recordVitalsAction(formData: FormData) {
   const raw = Object.fromEntries(formData) as Record<string, string>;
   const cleaned: Record<string, unknown> = { encounter_id: raw.encounter_id };
-  for (const k of ["ta_sistolica","ta_diastolica","fc","fr","temperatura","saturacion","glucemia","dolor_eva"]) {
+  for (const k of ["ta_sistolica","ta_diastolica","fc","fr","temperatura","saturacion","glucemia","glasgow","dolor_eva"]) {
     if (raw[k] != null && raw[k] !== "") cleaned[k] = raw[k];
   }
   if (raw.notas) cleaned.notas = raw.notas;

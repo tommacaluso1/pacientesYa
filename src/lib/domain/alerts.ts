@@ -29,15 +29,15 @@ async function emit(encounter_id: string, kind: AlertKind, severity: AlertSeveri
 export async function evaluateEncounter(encounterId: string) {
   const { supabase } = await requireUser();
 
-  // overdue tasks
+  // overdue tasks. Severity is fixed at "warn" — task priority was removed from
+  // the UI and we no longer rely on it for downstream signals.
   const nowIso = new Date().toISOString();
   const { data: overdue } = await supabase
-    .from("tasks").select("id,title,due_at,priority")
+    .from("tasks").select("id,title,due_at")
     .eq("encounter_id", encounterId).eq("status", "pendiente")
     .not("due_at", "is", null).lt("due_at", nowIso);
   for (const t of overdue ?? []) {
-    const sev: AlertSeverity = t.priority === "critica" ? "critico" : "warn";
-    await emit(encounterId, "tarea_vencida", sev, `Tarea vencida: ${t.title}`, t.id);
+    await emit(encounterId, "tarea_vencida", "warn", `Tarea vencida: ${t.title}`, t.id);
   }
 
   // abnormal labs (most recent only)

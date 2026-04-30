@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/supabase/server";
-import { fmtDateTime } from "@/lib/utils";
+import { daysOfStay, fmtDateTime } from "@/lib/utils";
 import type { Encounter, Patient, Vitals, ClinicalEntity } from "@/types/database";
+import { AntecedentesEditor } from "./AntecedentesEditor";
 
 export async function ResumenTab({ patient, encounter }: { patient: Patient; encounter: Encounter }) {
   const { supabase } = await requireUser();
@@ -20,7 +21,10 @@ export async function ResumenTab({ patient, encounter }: { patient: Patient; enc
       <Card>
         <CardHeader><CardTitle className="text-base">Episodio actual</CardTitle></CardHeader>
         <CardContent className="text-sm space-y-1">
-          <div><b>Ingreso:</b> {fmtDateTime(encounter.ingreso_at)}</div>
+          <div><b>Ingreso:</b> {fmtDateTime(encounter.ingreso_at)}{(() => {
+            const d = daysOfStay(encounter.ingreso_at);
+            return d != null ? ` · día ${d} de internación` : "";
+          })()}</div>
           <div><b>Motivo:</b> {encounter.motivo_consulta ?? "—"}</div>
           <div><b>Dx presuntivo:</b> {encounter.diagnostico_presuntivo ?? "—"}</div>
         </CardContent>
@@ -28,10 +32,15 @@ export async function ResumenTab({ patient, encounter }: { patient: Patient; enc
 
       <Card>
         <CardHeader><CardTitle className="text-base">Antecedentes</CardTitle></CardHeader>
-        <CardContent className="text-sm space-y-1">
-          <div><b>Personales:</b> {patient.antecedentes?.join(", ") || "—"}</div>
-          <div><b>Alergias:</b> {patient.alergias?.join(", ") || "—"}</div>
-          <div><b>Medicación habitual:</b> {patient.medicacion_habitual?.join(", ") || "—"}</div>
+        <CardContent>
+          <AntecedentesEditor
+            patientId={patient.id}
+            initial={{
+              antecedentes: patient.antecedentes ?? [],
+              alergias: patient.alergias ?? [],
+              medicacion_habitual: patient.medicacion_habitual ?? []
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -45,7 +54,8 @@ export async function ResumenTab({ patient, encounter }: { patient: Patient; enc
               <Stat l="FR" v={v.fr ?? "—"} />
               <Stat l="Tº" v={v.temperatura ?? "—"} />
               <Stat l="SatO2" v={v.saturacion ? `${v.saturacion}%` : "—"} />
-              <Stat l="HGT" v={v.glucemia ?? "—"} />
+              <Stat l="Glucemia" v={v.glucemia ?? "—"} />
+              <Stat l="Glasgow" v={(v as Vitals & { glasgow?: number | null }).glasgow ?? "—"} />
             </div>
           ) : <span className="text-muted-foreground">Sin signos vitales cargados.</span>}
         </CardContent>

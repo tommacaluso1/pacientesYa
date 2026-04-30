@@ -62,7 +62,8 @@ export interface ClinicalEntity {
 export interface Vitals {
   id: string; encounter_id: string; owner_id: string; measured_at: string;
   ta_sistolica: number | null; ta_diastolica: number | null; fc: number | null; fr: number | null;
-  temperatura: number | null; saturacion: number | null; glucemia: number | null; dolor_eva: number | null;
+  temperatura: number | null; saturacion: number | null; glucemia: number | null;
+  glasgow: number | null; dolor_eva: number | null;
   notas: string | null; created_at: string;
 }
 
@@ -80,7 +81,7 @@ export interface DocumentRow {
 }
 
 export interface Task extends Timestamps {
-  id: string; encounter_id: string; owner_id: string;
+  id: string; encounter_id: string; patient_id: string; owner_id: string;
   title: string; detail: string | null;
   priority: TaskPriority; status: TaskStatus;
   due_at: string | null; completed_at: string | null;
